@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const User = require('./User');
 
 const diaryEntrySchema = new mongoose.Schema({
-  user_id: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId, // References the User model
     ref: 'User', // Name of the related collection/model
     required: true,
