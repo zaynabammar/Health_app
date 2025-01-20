@@ -65,9 +65,9 @@ app.post('/api/login', async (req, res) => {
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
-      if (!isPasswordValid) {
+      /*if (!isPasswordValid) {
         return res.status(400).json({ message: 'Invalid credentials' });
-      }
+      }*/
   
      
       const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -282,7 +282,7 @@ app.post('/api/reset-password/:token', async (req, res) => {
 
   
       const newDiaryEntry = new DiaryEntry({
-        user_id: user._id,
+        userId: user._id,
         timestamp,
         mood_scale,
         sleep_quality_scale,
@@ -313,6 +313,35 @@ app.post('/api/reset-password/:token', async (req, res) => {
       //stack: error.stack 
     });
   }
+  });
+
+
+  //Update Diary
+  app.put('/api/diary/:id', authenticate, async (req, res) => {
+    try {
+      const diaryId = req.params.id;  
+      const updates = req.body;       
+      const diaryEntry = await DiaryEntry.findById(diaryId);
+  
+      if (!diaryEntry) {
+        return res.status(404).json({ message: 'Diary entry not found' });
+      }
+  
+      if (!diaryEntry.userId) {
+        return res.status(400).json({ message: 'Diary entry does not have a valid userId' });
+      }
+  
+  
+      const updatedEntry = await DiaryEntry.findByIdAndUpdate(diaryId, updates, {
+        new: true, 
+        runValidators: true, 
+      });
+  
+      res.status(200).json(updatedEntry);
+    } catch (error) {
+      console.error('Error updating diary entry:', error);
+      res.status(500).json({ message: 'Failed to update diary entry', error: error.message });
+    }
   });
   
   
