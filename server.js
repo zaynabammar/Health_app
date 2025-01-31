@@ -76,7 +76,8 @@ app.post('/api/login', async (req, res) => {
     });
 
 
-    app.put('/api/user/:user_id', async (req, res) => {
+//Update email || password 
+app.put('/api/user/:user_id', async (req, res) => {
       try {
         const { user_id } = req.params; 
         const { email, password } = req.body; 
@@ -109,10 +110,39 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while updating user information.', error: error.message });
       }
     });  
+
+//Password reset
+app.post('/api/reset-password-direct', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Email and new password are required.' });
+    }
+
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashedPassword;
+    
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'An error occurred while resetting the password', error: error.message });
+  }
+});
   
 
   // Log Out 
-  app.post('/api//logout', (req, res) => {
+app.post('/api//logout', (req, res) => {
    
     res.status(200).json({ message: 'Logged out successfully' });
   });
@@ -137,7 +167,7 @@ app.post('/api/login', async (req, res) => {
 
 
   //Diary_entry Post
-  app.post('/api/diary', async (req, res) => {
+app.post('/api/diary', async (req, res) => {
     //console.log("POST /diary_entry hit");
     try {
       const {email, timestamp, mood_scale, sleep_quality_scale, sleep_duration_length, stool_consistency_scale,
@@ -183,10 +213,38 @@ app.post('/api/login', async (req, res) => {
     });
   }
   });
+
+//Update Diary
+  app.put('/api/diary/:id', authenticate, async (req, res) => {
+    try {
+      const diaryId = req.params.id;  
+      const updates = req.body;       
+      const diaryEntry = await DiaryEntry.findById(diaryId);
+  
+      if (!diaryEntry) {
+        return res.status(404).json({ message: 'Diary entry not found' });
+      }
+  
+      if (!diaryEntry.userId) {
+        return res.status(400).json({ message: 'Diary entry does not have a valid userId' });
+      }
+  
+  
+      const updatedEntry = await DiaryEntry.findByIdAndUpdate(diaryId, updates, {
+        new: true, 
+        runValidators: true, 
+      });
+  
+      res.status(200).json(updatedEntry);
+    } catch (error) {
+      console.error('Error updating diary entry:', error);
+      res.status(500).json({ message: 'Failed to update diary entry', error: error.message });
+    }
+  });
   
 
   //Diary_Entry Get
-  app.get('/api/diary', async (req, res) => {
+app.get('/api/diary', async (req, res) => {
     try {
       const { from, to, user_id } = req.query;
   
